@@ -5,21 +5,24 @@ import {
   StyleSheet,
   TouchableOpacity,
   Image,
-  SafeAreaView,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, useRootNavigationState } from 'expo-router';
 import { useLockStore } from '../src/store/lockStore';
 
 export default function HomeScreen() {
-  const { state, dispatch } = useLockStore();
+  const { state, dispatch, isFirstLaunch, isReady } = useLockStore();
   const router = useRouter();
+  const navState = useRootNavigationState();
 
   useEffect(() => {
-    if (state === 'ATTEMPT') router.push('/attempt');
-    else if (state === 'TIMEOUT') router.push('/timeout');
-    else if (state === 'SET_PASSWORD') router.push('/set-password');
-    else if (state === 'CONFIRM_PASSWORD') router.push('/confirm-password');
-  }, [state]);
+    if (!navState?.key || !isReady) return;
+    if (isFirstLaunch) { router.replace('/create-pin'); return; }
+    if (state === 'ATTEMPT') router.replace('/attempt');
+    else if (state === 'TIMEOUT') router.replace('/timeout');
+    else if (state === 'SET_PASSWORD') router.replace('/set-password');
+    else if (state === 'CONFIRM_PASSWORD') router.replace('/confirm-password');
+  }, [state, navState?.key, isFirstLaunch, isReady]);
 
   const isUnlocked = state === 'UNLOCKED';
 

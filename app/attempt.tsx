@@ -3,9 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useLockStore, verifyPassword } from '../src/store/lockStore';
 import { Keypad } from '../src/components/Keypad';
@@ -19,7 +19,7 @@ export default function AttemptScreen() {
   const router = useRouter();
 
   const handleKey = (key: string) => {
-    if (pin.length < 6) {
+    if (pin.length < 4) {
       setPin(prev => prev + key);
       setHasError(false);
     }
@@ -52,7 +52,7 @@ export default function AttemptScreen() {
     }
   };
 
-  const remainingAttempts = Math.max(0, 3 - attempts - 1);
+  const remainingAttempts = Math.max(0, 3 - attempts);
 
   return (
     <SafeAreaView style={styles.container}>

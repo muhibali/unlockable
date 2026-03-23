@@ -7,7 +7,7 @@ interface PinDotsProps {
   hasError?: boolean;
 }
 
-export function PinDots({ length, maxLength = 6, hasError = false }: PinDotsProps) {
+export function PinDots({ length, maxLength = 4, hasError = false }: PinDotsProps) {
   const shakeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {

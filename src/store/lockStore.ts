@@ -3,6 +3,7 @@ import { LockState, LockEvent } from '../fsm/types';
 import { transition } from '../fsm/machine';
 import * as SecureStore from 'expo-secure-store';
 import * as Crypto from 'expo-crypto';
+import { File, Paths } from 'expo-file-system';
 
 const MAX_ATTEMPTS = 3;
 const TIMEOUT_DURATION = 30; // seconds
@@ -12,8 +13,12 @@ interface LockStore {
   attempts: number;
   timeoutRemaining: number;
   pendingPassword: string;
+  isFirstLaunch: boolean;
+  isReady: boolean;
   dispatch: (event: LockEvent, payload?: string) => Promise<void>;
   startTimeout: () => void;
+  initialize: () => Promise<void>;
+  completeFirstLaunch: (pin: string) => Promise<void>;
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -28,6 +33,26 @@ export const useLockStore = create<LockStore>((set, get) => ({
   attempts: 0,
   timeoutRemaining: 0,
   pendingPassword: '',
+  isFirstLaunch: false,
+  isReady: false,
+
+  initialize: async () => {
+    const flag = new File(Paths.document, 'setup_complete');
+    if (!flag.exists) {
+      // Fresh install — wipe any stale Keychain data left over from a previous install
+      await SecureStore.deleteItemAsync('lock_password').catch(() => {});
+      set({ isFirstLaunch: true, isReady: true });
+    } else {
+      set({ isFirstLaunch: false, isReady: true });
+    }
+  },
+
+  completeFirstLaunch: async (pin: string) => {
+    const hashed = await hashPassword(pin);
+    await SecureStore.setItemAsync('lock_password', hashed);
+    new File(Paths.document, 'setup_complete').write('1');
+    set({ isFirstLaunch: false });
+  },
 
   dispatch: async (event: LockEvent, payload?: string) => {
     const { state, attempts } = get();
@@ -89,17 +114,10 @@ export const useLockStore = create<LockStore>((set, get) => ({
 
 export async function verifyPassword(input: string): Promise<boolean> {
   const stored = await SecureStore.getItemAsync('lock_password');
+  if (!stored) return false;
   const inputHash = await Crypto.digestStringAsync(
     Crypto.CryptoDigestAlgorithm.SHA256,
     input
   );
-  if (!stored) {
-    // Default password: 1234
-    const defaultHash = await Crypto.digestStringAsync(
-      Crypto.CryptoDigestAlgorithm.SHA256,
-      '1234'
-    );
-    return inputHash === defaultHash;
-  }
   return inputHash === stored;
 }

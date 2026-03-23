@@ -4,6 +4,7 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -11,9 +12,10 @@ import { useLockStore } from '../src/store/lockStore';
 import { Keypad } from '../src/components/Keypad';
 import { PinDots } from '../src/components/PinDots';
 
-export default function ConfirmPasswordScreen() {
+export default function CreatePinScreen() {
   const [pin, setPin] = useState('');
-  const { dispatch } = useLockStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const { completeFirstLaunch } = useLockStore();
   const router = useRouter();
 
   const handleKey = (key: string) => {
@@ -23,8 +25,9 @@ export default function ConfirmPasswordScreen() {
   const handleDelete = () => setPin(prev => prev.slice(0, -1));
 
   const handleSubmit = async () => {
-    if (pin.length < 4) return;
-    await dispatch('CONFIRM_PASSWORD_MATCH', pin);
+    if (pin.length < 4 || isLoading) return;
+    setIsLoading(true);
+    await completeFirstLaunch(pin);
     router.replace('/');
   };
 
@@ -32,20 +35,17 @@ export default function ConfirmPasswordScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => { dispatch('CONFIRM_PASSWORD_MISMATCH'); router.replace('/set-password'); }}
-          style={styles.backButton}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        >
-          <Text style={styles.backText}>Back</Text>
-        </TouchableOpacity>
-        <Text style={styles.title}>New PIN</Text>
-        <View style={styles.headerRight} />
+        <Image
+          source={require('../unlockable-logo.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </View>
 
       {/* Body */}
       <View style={styles.body}>
-        <Text style={styles.instruction}>Enter your new PIN</Text>
+        <Text style={styles.title}>Create your PIN</Text>
+        <Text style={styles.subtitle}>You'll use this to unlock the door</Text>
         <PinDots length={pin.length} />
       </View>
 
@@ -57,19 +57,19 @@ export default function ConfirmPasswordScreen() {
         <TouchableOpacity
           style={[
             styles.saveButton,
-            pin.length < 4 && styles.saveButtonDisabled,
+            (pin.length < 4 || isLoading) && styles.saveButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={pin.length < 4}
+          disabled={pin.length < 4 || isLoading}
           activeOpacity={0.85}
         >
           <Text
             style={[
               styles.saveButtonText,
-              pin.length < 4 && styles.saveButtonTextDisabled,
+              (pin.length < 4 || isLoading) && styles.saveButtonTextDisabled,
             ]}
           >
-            Save PIN
+            {isLoading ? 'Saving...' : 'Set PIN'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -83,29 +83,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    paddingTop: 8,
     paddingHorizontal: 24,
-    paddingTop: 16,
     paddingBottom: 8,
   },
-  backButton: {},
-  backText: {
-    color: '#636366',
-    fontSize: 16,
-    fontFamily: 'System',
-    fontWeight: '400',
-  },
-  title: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontFamily: 'System',
-    fontWeight: '600',
-    letterSpacing: -0.3,
-  },
-  headerRight: {
-    width: 60,
+  logo: {
+    height: 32,
+    width: 160,
   },
   body: {
     flex: 1,
@@ -113,9 +98,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 24,
   },
-  instruction: {
+  title: {
+    color: '#ffffff',
+    fontSize: 28,
+    fontFamily: 'System',
+    fontWeight: '700',
+    letterSpacing: -0.6,
+    marginBottom: 8,
+  },
+  subtitle: {
     color: '#636366',
-    fontSize: 14,
+    fontSize: 15,
     fontFamily: 'System',
     fontWeight: '400',
     marginBottom: 4,

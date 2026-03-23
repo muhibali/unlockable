@@ -3,29 +3,46 @@ import {
   View,
   Text,
   StyleSheet,
-  SafeAreaView,
   TouchableOpacity,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useLockStore } from '../src/store/lockStore';
+import { useLockStore, verifyPassword } from '../src/store/lockStore';
 import { Keypad } from '../src/components/Keypad';
 import { PinDots } from '../src/components/PinDots';
 
 export default function SetPasswordScreen() {
   const [pin, setPin] = useState('');
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const { dispatch } = useLockStore();
   const router = useRouter();
 
   const handleKey = (key: string) => {
-    if (pin.length < 6) setPin(prev => prev + key);
+    if (pin.length < 4) {
+      setPin(prev => prev + key);
+      setHasError(false);
+    }
   };
 
-  const handleDelete = () => setPin(prev => prev.slice(0, -1));
+  const handleDelete = () => {
+    setPin(prev => prev.slice(0, -1));
+    setHasError(false);
+  };
 
   const handleSubmit = async () => {
-    if (pin.length < 4) return;
-    await dispatch('PASSWORD_SUBMITTED', pin);
-    router.replace('/confirm-password');
+    if (pin.length < 4 || isLoading) return;
+    setIsLoading(true);
+    const correct = await verifyPassword(pin);
+    setIsLoading(false);
+
+    if (correct) {
+      await dispatch('PASSWORD_SUBMITTED', pin);
+      router.replace('/confirm-password');
+    } else {
+      setHasError(true);
+      setPin('');
+    }
   };
 
   return (
@@ -39,14 +56,17 @@ export default function SetPasswordScreen() {
         >
           <Text style={styles.cancelText}>Cancel</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Set PIN</Text>
+        <Text style={styles.title}>Change PIN</Text>
         <View style={styles.headerRight} />
       </View>
 
       {/* Body */}
       <View style={styles.body}>
-        <Text style={styles.instruction}>Choose a new PIN (4–6 digits)</Text>
-        <PinDots length={pin.length} />
+        <Text style={styles.instruction}>Enter your current PIN</Text>
+        <PinDots length={pin.length} hasError={hasError} />
+        {hasError && (
+          <Text style={styles.errorText}>Incorrect PIN. Try again.</Text>
+        )}
       </View>
 
       {/* Keypad */}
@@ -57,19 +77,19 @@ export default function SetPasswordScreen() {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            pin.length < 4 && styles.continueButtonDisabled,
+            (pin.length < 4 || isLoading) && styles.continueButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={pin.length < 4}
+          disabled={pin.length < 4 || isLoading}
           activeOpacity={0.85}
         >
           <Text
             style={[
               styles.continueButtonText,
-              pin.length < 4 && styles.continueButtonTextDisabled,
+              (pin.length < 4 || isLoading) && styles.continueButtonTextDisabled,
             ]}
           >
-            Continue
+            {isLoading ? 'Verifying...' : 'Continue'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -119,6 +139,12 @@ const styles = StyleSheet.create({
     fontFamily: 'System',
     fontWeight: '400',
     marginBottom: 4,
+  },
+  errorText: {
+    color: '#ff453a',
+    fontSize: 14,
+    fontFamily: 'System',
+    marginTop: -12,
   },
   footer: {
     paddingHorizontal: 24,
