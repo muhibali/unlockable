@@ -1,0 +1,49 @@
+# Dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+
+# Native builds
+ios/build/
+android/build/
+android/app/build/
+
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+
+# macOS
+.DS_Store
+*.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# TypeScript
+*.tsbuildinfo
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# CocoaPods (installed via `pod install`, not committed)
+ios/Pods/
+
+# Xcode local env (personal node path overrides)
+ios/.xcode.env.local
+
+# Android
+android/local.properties
+*.keystore
+!debug.keystore

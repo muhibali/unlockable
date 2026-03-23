@@ -1,0 +1,32 @@
+{
+  "expo": {
+    "name": "Unlockable",
+    "slug": "unlockable",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./unlockable-app-logo.png",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#000000",
+    "splash": {
+      "image": "./unlockable-app-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#000000"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.unlockable.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./unlockable-app-logo.png",
+        "backgroundColor": "#000000"
+      },
+      "package": "com.unlockable.app"
+    },
+    "scheme": "unlockable",
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ]
+  }
+}
