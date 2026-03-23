@@ -1,6 +1,29 @@
-import { BleManager, Device } from 'react-native-ble-plx';
 import { Platform, PermissionsAndroid } from 'react-native';
-import { atob, btoa } from 'react-native';
+
+let BleManager: any;
+let Device: any;
+
+// Polyfill atob/btoa for web/unsupported platforms
+const atob = (str: string): string => {
+  if (typeof global.atob === 'function') return global.atob(str);
+  return Buffer.from(str, 'base64').toString('binary');
+};
+
+const btoa = (str: string): string => {
+  if (typeof global.btoa === 'function') return global.btoa(str);
+  return Buffer.from(str, 'binary').toString('base64');
+};
+
+// Only import BLE library on supported platforms (Android/iOS)
+if (Platform.OS === 'android' || Platform.OS === 'ios') {
+  try {
+    const ble = require('react-native-ble-plx');
+    BleManager = ble.BleManager;
+    Device = ble.Device;
+  } catch (e) {
+    console.warn('react-native-ble-plx not available on this platform', e);
+  }
+}
 
 // ─── UUIDs — must match your ESP32 sketch exactly ────────────────────────────
 export const SERVICE_UUID      = '6E400001-B5A3-F393-E0A9-E50E24DCCA9E';
@@ -11,8 +34,8 @@ export const DEVICE_NAME = 'Unlockable';
 const SCAN_TIMEOUT_MS = 10000;
 
 class BLEService {
-  private manager = new BleManager();
-  private device: Device | null = null;
+  private manager: any = BleManager ? new BleManager() : null;
+  private device: any = null;
   private onStateChange?: (state: string) => void;
   private onConnectionChange?: (connected: boolean) => void;
 
@@ -29,6 +52,11 @@ class BLEService {
 
   // ─── Connect ────────────────────────────────────────────────────────────────
   async connect(): Promise<boolean> {
+    if (!this.manager || !BleManager) {
+      console.warn('BLE not supported on this platform');
+      return false;
+    }
+
     const hasPerms = await this.requestPermissions();
     if (!hasPerms) return false;
 
@@ -38,7 +66,7 @@ class BLEService {
         resolve(false);
       }, SCAN_TIMEOUT_MS);
 
-      this.manager.startDeviceScan(null, { allowDuplicates: false }, async (error, scanned) => {
+      this.manager.startDeviceScan(null, { allowDuplicates: false }, async (error: any, scanned: any) => {
         if (error) {
           clearTimeout(timeout);
           resolve(false);
@@ -63,7 +91,7 @@ class BLEService {
           this.device.monitorCharacteristicForService(
             SERVICE_UUID,
             STATE_CHAR_UUID,
-            (err, char) => {
+            (err: any, char: any) => {
               if (err || !char?.value) return;
               try {
                 const decoded = atob(char.value);
