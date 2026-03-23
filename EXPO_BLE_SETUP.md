@@ -1,99 +1,128 @@
-# Unlockable - Building on Windows
+# Unlockable — Building on Windows (Android)
 
-## The Problem
-`react-native-ble-plx` requires native code compilation that Expo's managed workflow doesn't easily support on Windows.
+## Why you can't just use Expo Go
 
-## The Solution: Use EAS Build (Recommended)
+`react-native-ble-plx` is a native module. Expo Go doesn't include it, so BLE will never
+work inside Expo Go — the Connect button will always fail silently. You need a proper build.
 
-EAS Build is Expo's cloud service that handles all the native compilation for you. No need to deal with Gradle, Android SDK, or native linking locally.
+---
 
-### Quick Setup
+## Step 1 — Install prerequisites (one time)
 
-1. **Install EAS CLI:**
-   ```bash
+1. Install **Node.js LTS** from https://nodejs.org
+2. Install **Git** from https://git-scm.com
+3. Install **EAS CLI** globally:
+   ```
    npm install -g eas-cli
    ```
 
-2. **Login to Expo (free account):**
-   ```bash
-   eas login
-   # or eas register if you don't have an account
-   ```
-
-3. **Initialize EAS in your project:**
-   ```bash
-   cd unlockable
-   eas build:configure
-   # Just press Enter to use defaults
-   ```
-
-4. **Build for Android:**
-   ```bash
-   eas build --platform android
-   ```
-
-5. **Build for iOS (on Mac):**
-   ```bash
-   eas build --platform ios
-   ```
-
-This creates an APK that will be emailed to you (or available in the EAS dashboard) with **full native BLE support included**.
-
-### Why This Works
-
-- ✅ EAS handles all Gradle/native compilation complexity
-- ✅ Builds run on Expo's servers (not your machine)
-- ✅ `react-native-ble-plx` native bindings are automatically included
-- ✅ Works perfectly from Windows/Mac/Linux
-
-### Troubleshooting
-
-If you see "Deprecated Gradle features" warnings, that's normal - EAS manages the Gradle setup and handles all deprecation warnings internally.
-
 ---
 
-## Alternative: For Development Testing Only
+## Step 2 — Get the project
 
-If you just want to test the UI without BLE functionality:
-
-```bash
+```
+git clone <repo-url>
 cd unlockable
-npm install
-npx expo start
-# Scan QR with Expo Go app on your phone
+npm install --legacy-peer-deps
 ```
-
-This runs in Expo Go which doesn't support native modules, so BLE won't work, but all UI will function normally.
 
 ---
 
-## If Your Friend Already Ran Prebuild
+## Step 3 — Create a free Expo account
 
-If they already ran `npx expo prebuild` and see the `android/` folder, they can either:
+Go to https://expo.dev and sign up (free). Then in the terminal:
 
-**Option A: Clean it up and use EAS instead**
-```bash
-rm -rf android/ ios/
-# Then follow the EAS Build steps above
 ```
-
-**Option B: Continue with Gradle (more complex)**
-Would need to fix Gradle version issues locally - not recommended on Windows.
+eas login
+```
 
 ---
 
-## Recommended Workflow
+## Step 4 — Link the project to your Expo account
 
-| What | How |
-|------|-----|
-| Dev testing (no BLE) | `expo start` + Expo Go app |
-| Production build (with BLE) | `eas build --platform android` |
-| Testing on specific device | Build APK with EAS, install on phone |
+Run this once inside the project folder:
 
-## Cost
+```
+eas build:configure
+```
 
-- ✅ Free tier: 30 builds/month with EAS
-- ✅ All development builds are free
-- ✅ Only pay if you want unlimited production builds ($99/month)
+When prompted:
+- **"Which platforms"** → select `Android`
+- Accept all defaults / press Enter for everything else
 
-Let me know if you need help setting up EAS or have any issues!
+This updates `eas.json` with your account details.
+
+---
+
+## Step 5 — Build the APK (runs on Expo's servers, not your PC)
+
+```
+eas build --profile preview --platform android
+```
+
+- The build runs in the cloud — you do NOT need Android Studio installed
+- It takes ~5–10 minutes
+- When finished, a **download link** appears in the terminal (also visible at https://expo.dev under your account)
+
+> **Important:** use `--profile preview` — this produces an `.apk` file you can install
+> directly. The default production build produces an `.aab` (App Bundle) that cannot be
+> sideloaded onto a phone.
+
+---
+
+## Step 6 — Install on your Android phone
+
+1. Download the APK from the link shown in the terminal
+2. On your phone: **Settings → Security → Install unknown apps** → allow your browser/Files app
+3. Open the downloaded APK and tap Install
+
+---
+
+## Step 7 — Pair with the ESP32
+
+1. Make sure the ESP32 is powered on and the Arduino sketch is flashed
+2. Open the Unlockable app
+3. Tap the **Connect** button (top-right of the home screen)
+4. The app scans for a BLE device named `Unlockable`
+5. Once found, the dot turns green and shows "Connected"
+
+> If the button spins and times out:
+> - Make sure the ESP32 is powered and the sketch is running
+> - Make sure Bluetooth is on and location permission is granted on your phone
+> - On Android 12+: Settings → Apps → Unlockable → Permissions → grant Location and Nearby Devices
+
+---
+
+## Rebuild after code changes
+
+After any code change, just run the build command again:
+
+```
+eas build --profile preview --platform android
+```
+
+You don't need to reinstall EAS CLI or re-login each time.
+
+---
+
+## Two separate PINs — how they work
+
+| | App PIN | Hardware PIN |
+|---|---|---|
+| Where set | In the app (first launch / Change PIN) | Hardcoded in Arduino sketch (`correctPassword`) |
+| What it does | Authenticates you in the app, sends BLE UNLOCK command | Physical fallback via the 6 buttons on the device |
+| Storage | iOS Keychain / Android Keystore (encrypted) | ESP32 RAM (resets to default on power cycle) |
+
+The app PIN and the hardware PIN are **independent**. Changing one does not change the other.
+
+---
+
+## Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `eas: command not found` | Run `npm install -g eas-cli` again |
+| Build fails with "project not found" | Run `eas build:configure` again |
+| APK installs but Connect always fails | Make sure you used `--profile preview` (not production), and ESP32 is powered on |
+| "Nearby devices" permission denied | Grant via phone Settings → Apps → Unlockable → Permissions |
+| ESP32 not discovered | Confirm sketch is uploaded and Serial Monitor shows it started |
