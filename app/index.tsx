@@ -1,19 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useRootNavigationState } from 'expo-router';
 import { useLockStore } from '../src/store/lockStore';
 
 export default function HomeScreen() {
-  const { state, dispatch, isFirstLaunch, isReady } = useLockStore();
+  const { state, dispatch, isFirstLaunch, isReady, isConnected, connectBLE, disconnectBLE } = useLockStore();
   const router = useRouter();
   const navState = useRootNavigationState();
+  const [isConnecting, setIsConnecting] = useState(false);
 
   useEffect(() => {
     if (!navState?.key || !isReady) return;
@@ -23,6 +25,13 @@ export default function HomeScreen() {
     else if (state === 'SET_PASSWORD') router.replace('/set-password');
     else if (state === 'CONFIRM_PASSWORD') router.replace('/confirm-password');
   }, [state, navState?.key, isFirstLaunch, isReady]);
+
+  const handleConnect = async () => {
+    if (isConnected) { await disconnectBLE(); return; }
+    setIsConnecting(true);
+    await connectBLE();
+    setIsConnecting(false);
+  };
 
   const isUnlocked = state === 'UNLOCKED';
 
@@ -35,6 +44,19 @@ export default function HomeScreen() {
           style={styles.logo}
           resizeMode="contain"
         />
+        {/* BLE status */}
+        <TouchableOpacity style={styles.bleButton} onPress={handleConnect} activeOpacity={0.7}>
+          {isConnecting ? (
+            <ActivityIndicator size="small" color="#636366" />
+          ) : (
+            <View style={styles.bleInner}>
+              <View style={[styles.bleDot, isConnected && styles.bleDotConnected]} />
+              <Text style={[styles.bleText, isConnected && styles.bleTextConnected]}>
+                {isConnected ? 'Connected' : 'Connect'}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
       </View>
 
       {/* Center state display */}
@@ -54,6 +76,9 @@ export default function HomeScreen() {
         <Text style={styles.stateSubtitle}>
           {isUnlocked ? 'The door is open' : 'The door is secured'}
         </Text>
+        {!isConnected && (
+          <Text style={styles.mockNote}>Hardware not connected · simulation mode</Text>
+        )}
       </View>
 
       {/* Action buttons */}
@@ -98,7 +123,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#000000',
   },
   header: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingTop: 8,
     paddingHorizontal: 24,
     paddingBottom: 8,
@@ -106,6 +133,33 @@ const styles = StyleSheet.create({
   logo: {
     height: 32,
     width: 160,
+  },
+  bleButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 2,
+  },
+  bleInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  bleDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: '#3a3a3c',
+  },
+  bleDotConnected: {
+    backgroundColor: '#30d158',
+  },
+  bleText: {
+    color: '#3a3a3c',
+    fontSize: 13,
+    fontFamily: 'System',
+    fontWeight: '500',
+  },
+  bleTextConnected: {
+    color: '#30d158',
   },
   center: {
     flex: 1,
@@ -145,6 +199,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'System',
     fontWeight: '400',
+  },
+  mockNote: {
+    color: '#3a3a3c',
+    fontSize: 12,
+    fontFamily: 'System',
+    marginTop: 12,
   },
   actions: {
     paddingHorizontal: 24,

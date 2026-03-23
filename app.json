@@ -14,7 +14,11 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.unlockable.app"
+      "bundleIdentifier": "com.unlockable.app",
+      "infoPlist": {
+        "NSBluetoothAlwaysUsageDescription": "Unlockable uses Bluetooth to communicate with your door lock.",
+        "NSBluetoothPeripheralUsageDescription": "Unlockable uses Bluetooth to communicate with your door lock."
+      }
     },
     "android": {
       "adaptiveIcon": {
