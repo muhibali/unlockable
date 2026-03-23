@@ -25,12 +25,21 @@
         "foregroundImage": "./unlockable-app-logo.png",
         "backgroundColor": "#000000"
       },
-      "package": "com.unlockable.app"
+      "package": "com.unlockable.app",
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_SCAN",
+        "android.permission.BLUETOOTH_CONNECT",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION"
+      ]
     },
     "scheme": "unlockable",
     "plugins": [
       "expo-router",
-      "expo-secure-store"
+      "expo-secure-store",
+      "react-native-ble-plx"
     ]
   }
 }
